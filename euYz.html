@@ -484,16 +484,26 @@
         }
 
         function playWithFade() {
-            audio.play().then(() => {
-                fadeIn(3000); 
-            }).catch(() => {
-                const startOnInteraction = () => {
-                    if (audio.paused) {
-                        audio.play().then(() => fadeIn(3000));
-                    }
-                };
-                document.body.addEventListener('click', startOnInteraction, { once: true });
-            });
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    fadeIn(3000); 
+                }).catch(() => {
+                    const startOnInteraction = () => {
+                        if (audio.paused) {
+                            audio.play().then(() => fadeIn(3000));
+                        }
+                        document.body.removeEventListener('click', startOnInteraction);
+                        document.body.removeEventListener('keydown', startOnInteraction);
+                        document.body.removeEventListener('touchstart', startOnInteraction);
+                    };
+                    
+                    document.body.addEventListener('click', startOnInteraction, { once: true });
+                    document.body.addEventListener('keydown', startOnInteraction, { once: true });
+                    document.body.addEventListener('touchstart', startOnInteraction, { once: true });
+                });
+            }
         }
 
         audio.addEventListener('timeupdate', () => {
@@ -507,8 +517,9 @@
                 });
             }
         });
-
+        
         loadTrack(currentTrackIndex);
+        playWithFade();
 
         window.addEventListener('load', () => {
             const loadBar = document.getElementById('load-bar');
