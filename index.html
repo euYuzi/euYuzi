@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en" class="no-fouc" style="--bg-color: 10, 10, 10; --selection: #a0a0a0; --main-color: #c0c0c0; --main-color-40: #c0c0c066; --accent: #ffffff;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>euYuzi // Terminal</title>
+    <meta name="description" content="euYuzi terminal profile with music player, projects and a retro visualizer.">
+    <link rel="icon" type="image/png" href="https://github.com/euYuzi.png">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/devicon.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600;700&display=swap');
+
+        :root{
+            --bg: rgb(var(--bg-color));
+            --panel: rgba(15, 15, 15, 0.92);
+            --panel-2: rgba(255,255,255,0.03);
+            --line: rgba(192,192,192,0.30);
+            --line-soft: rgba(192,192,192,0.12);
+            --text: var(--main-color);
+            --text-soft: #9d9d9d;
+            --title: var(--accent);
+            --shadow: 10px 10px 0px var(--main-color-40);
+        }
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
+            font-family:'Fira Code', monospace;
+        }
+
+        html, body{
+            min-height:100%;
+            background:#0a0a0a;
+            color:var(--text);
+        }
+
+        body{
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            min-height:100vh;
+            padding:24px;
+            overflow-x:hidden;
+            background:
+                linear-gradient(rgba(0,0,0,.45), rgba(0,0,0,.72)),
+                url("images/3.gif") center/cover no-repeat fixed;
+        }
+
+        .no-fouc{
+            visibility:hidden;
+        }
+
+        body::before{
+            content:"";
+            position:fixed;
+            inset:0;
+            background:
+                linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
+                linear-gradient(90deg, rgba(255,0,0,0.045), rgba(0,255,0,0.015), rgba(0,0,255,0.045));
+            background-size:100% 2px, 3px 100%;
+            pointer-events:none;
+            z-index:9998;
+        }
+
+        body::after{
+            content:"";
+            position:fixed;
+            inset:0;
+            background:
+                radial-gradient(circle at center, transparent 45%, rgba(0,0,0,.22) 75%, rgba(0,0,0,.48) 100%);
+            pointer-events:none;
+            z-index:1;
+        }
+
+        ::selection{
+            background:var(--selection);
+            color:#000;
+        }
+
+        #loader{
+            position:fixed;
+            inset:0;
+            z-index:10000;
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+            gap:12px;
+            background:#000;
+            opacity:1;
+            transition:opacity .55s ease, visibility .55s ease;
+        }
+
+        #loader.hide{
+            opacity:0;
+            visibility:hidden;
+            pointer-events:none;
+        }
+
+        .loader-title{
+            font-size:12px;
+            letter-spacing:2px;
+            text-transform:uppercase;
+            color:var(--title);
+        }
+
+        .load-bar-container{
+            width:min(320px, calc(100% - 32px));
+            height:18px;
+            border:1px solid var(--main-color);
+            padding:2px;
+            background:#0a0a0a;
+        }
+
+        #load-bar{
+            width:0%;
+            height:100%;
+            background:var(--main-color);
+        }
+
+        .shell{
+            width:100%;
+            max-width:1080px;
+            position:relative;
+            z-index:2;
+            opacity:0;
+            transform:translateY(18px);
+            animation:bootIn .9s cubic-bezier(.2,.7,.2,1) forwards;
+            animation-delay:.30s;
+        }
+
+        .terminal-window{
+            width:100%;
+            border:2px solid var(--main-color);
+            background:var(--panel);
+            box-shadow:var(--shadow);
+            padding:28px;
+            position:relative;
+        }
+
+        .terminal-window::before{
+            content:"";
+            position:absolute;
+            inset:0;
+            pointer-events:none;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,.035), transparent 30%);
+        }
+
+        header{
+            border-bottom:2px dashed var(--main-color);
+            padding-bottom:20px;
+            margin-bottom:20px;
+        }
+
+        .topline{
+            display:flex;
+            justify-content:space-between;
+            align-items:flex-start;
+            gap:18px;
+        }
+
+        .title-wrap{
+            min-width:0;
+            flex:1;
+        }
+
+        #title{
+            font-size:10px;
+            line-height:1;
+            white-space:pre;
+            color:var(--title);
+            margin-bottom:14px;
+            overflow:auto hidden;
+        }
+
+        #sub-title{
+            font-size:13px;
+            color:var(--text-soft);
+            font-weight:400;
+        }
+
+        .clock-box{
+            text-align:right;
+            border:1px solid var(--line);
+            padding:10px 12px;
+            min-width:150px;
+            background:rgba(255,255,255,.02);
+        }
+
+        #time{
+            font-size:18px;
+            color:var(--title);
+        }
+
+        #date{
+            font-size:10px;
+            opacity:.7;
+            margin-top:4px;
+        }
+
+        .tabs-nav{
+            margin-bottom:20px;
+        }
+
+        .tabs-nav ul{
+            list-style:none;
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+        }
+
+        .tabs-nav a{
+            display:inline-block;
+            padding:8px 12px;
+            text-decoration:none;
+            color:var(--main-color);
+            border:1px solid var(--line);
+            transition:.18s ease;
+            background:rgba(255,255,255,.02);
+        }
+
+        .tabs-nav a:hover,
+        .tabs-nav a.active{
+            background:var(--main-color);
+            color:#000;
+        }
+
+        .tab{
+            display:none;
+        }
+
+        .tab.active{
+            display:block;
+            animation:fadeTab .25s ease;
+        }
+
+        .grid{
+            display:grid;
+            grid-template-columns:1.2fr .9fr;
+            gap:18px;
+        }
+
+        .column{
+            display:grid;
+            gap:18px;
+            align-content:start;
+        }
+
+        .box{
+            border:1px solid var(--line);
+            background:rgba(255,255,255,.02);
+            padding:16px;
+            position:relative;
+        }
+
+        .box-title{
+            position:absolute;
+            top:-10px;
+            left:10px;
+            background:var(--panel);
+            padding:0 6px;
+            font-size:12px;
+            color:var(--title);
+            text-transform:uppercase;
+        }
+
+        .profile-block{
+            display:flex;
+            gap:16px;
+            align-items:center;
+        }
+
+        .avatar{
+            width:86px;
+            height:86px;
+            border:1px solid var(--line);
+            padding:3px;
+            background:#111;
+            flex:0 0 86px;
+        }
+
+        .avatar img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            filter:grayscale(1) contrast(1.05);
+        }
+
+        .identity h1{
+            font-size:22px;
+            color:var(--title);
+            margin-bottom:6px;
+        }
+
+        .identity p{
+            font-size:13px;
+            color:var(--text-soft);
+            line-height:1.6;
+        }
+
+        .status-tag{
+            display:inline-block;
+            background:var(--main-color);
+            color:#000;
+            padding:2px 8px;
+            font-size:12px;
+            font-weight:700;
+            margin-top:8px;
+        }
+
+        .terminal-text{
+            font-size:13px;
+            line-height:1.75;
+            color:var(--text);
+        }
+
+        .terminal-text .muted{
+            color:var(--text-soft);
+        }
+
+        .tech-list{
+            display:flex;
+            flex-wrap:wrap;
+            gap:10px;
+            list-style:none;
+        }
+
+        .tech-item{
+            font-size:12px;
+            border:1px solid var(--line);
+            padding:6px 10px;
+            background:rgba(255,255,255,.015);
+            transition:.18s ease;
+        }
+
+        .tech-item:hover{
+            background:var(--main-color);
+            color:#000;
+        }
+
+        .links{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:10px;
+        }
+
+        .btn{
+            text-align:center;
+            padding:12px;
+            border:1px solid var(--main-color);
+            text-decoration:none;
+            color:var(--main-color);
+            font-weight:700;
+            transition:.18s ease;
+            background:rgba(255,255,255,.02);
+        }
+
+        .btn:hover{
+            background:var(--main-color);
+            color:#000;
+            box-shadow:4px 4px 0 var(--main-color-40);
+            transform:translate(-2px, -2px);
+        }
+
+        .player{
+    margin-top:18px;
+    border:1px solid var(--line);
+    padding:12px;
+    display:grid;
+    grid-template-columns:44px minmax(0, 1fr) auto;
+    gap:12px;
+    align-items:start;
+    background:rgba(255,255,255,.02);
+}
+
+        .album{
+            width:44px;
+            height:44px;
+            border:1px solid var(--line);
+            display:grid;
+            place-items:center;
+            background:#111;
+            color:var(--title);
+        }
+
+        .track-meta{
+    min-width:0;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:0;
+}
+
+        .track-label{
+            font-size:10px;
+            color:var(--text-soft);
+            margin-bottom:5px;
+            text-transform:uppercase;
+            letter-spacing:1px;
+        }
+
+        #trackName{
+            font-size:12px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            color:var(--title);
+        }
+
+        #trackArtist{
+            font-size:11px;
+            color:var(--text-soft);
+            margin-top:4px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .visualizer-wrap{
+    margin-top:10px;
+    border:1px solid var(--line-soft);
+    padding:7px 8px 8px;
+    background:linear-gradient(180deg, rgba(255,255,255,.018), rgba(0,0,0,.15));
+    width:100%;
+    overflow:hidden;
+    position:relative;
+}
+
+        .visualizer-wrap::before{
+    content:"LOW        MID        HIGH";
+    display:block;
+    font-size:7px;
+    letter-spacing:1.2px;
+    color:rgba(192,192,192,.36);
+    margin-bottom:4px;
+    white-space:pre;
+}
+
+        .visualizer{
+    height:42px;
+    display:grid;
+    grid-template-columns:repeat(24, minmax(0, 1fr));
+    align-items:end;
+    gap:2px;
+    width:100%;
+    position:relative;
+}
+
+        .bar{
+    --level:1;
+    width:100%;
+    min-width:0;
+    height:42px;
+    position:relative;
+    opacity:.88;
+}
+
+        .bar::before{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:calc(var(--level) * 4px);
+    max-height:42px;
+    background:repeating-linear-gradient(
+        to top,
+        rgba(214,214,214,.92) 0 2px,
+        transparent 2px 4px
+    );
+    filter:drop-shadow(0 0 2px rgba(255,255,255,.08));
+    transition:height .055s linear, opacity .055s linear;
+}
+
+        .bar.low::before{ background:repeating-linear-gradient(to top, rgba(230,230,230,.98) 0 2px, transparent 2px 4px); }
+        .bar.mid::before{ background:repeating-linear-gradient(to top, rgba(255, 255, 255, 0.9) 0 2px, transparent 2px 4px); }
+        .bar.high::before{ background:repeating-linear-gradient(to top, rgba(255, 255, 255, 0.84) 0 2px, transparent 2px 4px); }
+
+        .player-btns{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-self:stretch;
+}
+
+        .player-btn{
+    min-width:78px;
+    height:34px;
+    padding:8px 10px;
+    background:none;
+    border:1px solid var(--main-color);
+    color:var(--main-color);
+    cursor:pointer;
+    transition:.18s ease;
+}
+
+        .player-btn:hover{
+            background:var(--main-color);
+            color:#000;
+        }
+
+        .progress-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-top:10px;
+    width:100%;
+}
+
+        .progress{
+            flex:1;
+            height:6px;
+            border:1px solid var(--line);
+            background:rgba(255,255,255,.02);
+        }
+
+        .progress-fill{
+            height:100%;
+            width:0%;
+            background:var(--main-color);
+        }
+
+        .progress-time{
+            min-width:34px;
+            text-align:right;
+            font-size:10px;
+            color:var(--text-soft);
+        }
+
+        .repo-list{
+            display:grid;
+            gap:12px;
+            max-height:360px;
+            overflow-y:auto;
+            padding-right:4px;
+        }
+
+        .repo-list::-webkit-scrollbar{
+            width:8px;
+        }
+
+        .repo-list::-webkit-scrollbar-thumb{
+            background:rgba(192,192,192,.25);
+        }
+
+        .repo-card{
+            border:1px solid var(--line);
+            padding:14px;
+            background:rgba(255,255,255,.015);
+            transition:.18s ease;
+        }
+
+        .repo-card:hover{
+            background:rgba(255,255,255,.035);
+            transform:translateY(-2px);
+        }
+
+        .repo-head{
+            display:flex;
+            justify-content:space-between;
+            gap:12px;
+            margin-bottom:8px;
+        }
+
+        .repo-name{
+            font-size:14px;
+            color:var(--title);
+            font-weight:700;
+        }
+
+        .repo-badge{
+            font-size:10px;
+            padding:2px 8px;
+            border:1px solid var(--line);
+            color:var(--text-soft);
+            white-space:nowrap;
+        }
+
+        .repo-desc{
+            font-size:12px;
+            line-height:1.65;
+            color:var(--text-soft);
+            margin-bottom:10px;
+        }
+
+        .repo-meta{
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+        }
+
+        .chip{
+            font-size:10px;
+            border:1px solid var(--line-soft);
+            padding:4px 8px;
+            color:var(--text);
+        }
+
+        .note{
+            font-size:12px;
+            line-height:1.75;
+            color:var(--text-soft);
+        }
+
+        .tooltip{
+            display:none;
+        }
+
+        @keyframes bootIn{
+            0%{ opacity:0; transform:translateY(14px) scale(.995); filter:blur(2px); }
+            55%{ opacity:.72; filter:blur(.5px); }
+            100%{ opacity:1; transform:translateY(0) scale(1); filter:blur(0); }
+        }
+
+        @keyframes fadeTab{
+            from{opacity:.4; transform:translateY(6px)}
+            to{opacity:1; transform:translateY(0)}
+        }
+
+        @media (max-width: 900px){
+            .grid{
+                grid-template-columns:1fr;
+            }
+
+            .topline{
+                flex-direction:column;
+            }
+
+            .clock-box{
+                width:100%;
+                text-align:left;
+            }
+        }
+
+        @media (max-width: 640px){
+            body{
+                padding:12px;
+            }
+
+            .terminal-window{
+                padding:18px;
+            }
+
+            #title{
+                font-size:6px;
+            }
+
+            .links{
+                grid-template-columns:1fr;
+            }
+
+            .player{
+                grid-template-columns:1fr;
+            }
+
+            .player-btns{
+                width:100%;
+            }
+
+            .player-btn{
+                flex:1;
+            }
+
+            .profile-block{
+                flex-direction:column;
+                align-items:flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.documentElement.classList.remove('no-fouc');
+        });
+    </script>
+
+    <div id="loader">
+        <div class="loader-title">𝙇𝙊𝘼𝘿𝙄𝙉𝙂 𝙏𝙀𝙍𝙈𝙄𝙉𝘼𝙇...</div>
+        <div class="load-bar-container">
+            <div id="load-bar"></div>
+        </div>
+    </div>
+
+    <div class="shell">
+        <div class="terminal-window">
+            <header>
+                <div class="topline">
+                    <div class="title-wrap">
+<pre id="title">
+_______________ ________.___.____ _____________.___ 
+\_   _____/    |   \__  |   |    |   \____    /|   |
+ |    __)_|    |   //   |   |    |   / /     / |   |
+ |        \    |  / \____   |    |  / /     /_ |   |
+/_______  /______/  / ______|______/ /_______ \|___|
+        \/          \/                       \/        
+</pre>
+                        <h1 id="sub-title"> Terminal profile </h1>
+                    </div>
+
+                    <div class="clock-box">
+                        <div id="time">00:00:00</div>
+                        <div id="date">MAR 20, 2026</div>
+                    </div>
+                </div>
+            </header>
+
+            <nav class="tabs-nav">
+                <ul>
+                    <li><a href="#home" class="tab-link active" data-tab="home">Home</a></li>
+                    <li><a href="#projects" class="tab-link" data-tab="projects">Projects</a></li>
+                    <li><a href="#about" class="tab-link" data-tab="about">About</a></li>
+                </ul>
+            </nav>
+
+            <section id="home" class="tab active">
+                <div class="grid">
+                    <div class="column">
+                        <div class="box">
+                            <span class="box-title">Profile</span>
+                            <div class="profile-block">
+                                <div class="avatar">
+                                    <img id="profileAvatar" src="https://github.com/euYuzi.png" alt="euYuzi">
+                                </div>
+                                <div class="identity">
+                                    <h1 id="profileLogin">euYuzi@dev:~$</h1>
+                                    <p id="profileBio">Developer &amp; Designer</p>
+                                    <div class="status-tag">STATUS: EVOLVING</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="box">
+                            <span class="box-title">About_Me</span>
+                            <div class="terminal-text">
+                                &gt; I build dark, clean and modern interfaces.<br>
+                                &gt; I am a junior developer focused on learning and improving the design of my projects.<br>
+                                &gt; I like terminal aesthetics, minimal layouts and experiences with a distinct identity.
+                            </div>
+                        </div>
+
+                        <div class="box">
+                            <span class="box-title">Links</span>
+                            <div class="links">
+                                <a href="https://github.com/euYuzi" target="_blank" class="btn">[ GITHUB ]</a>
+                                <a href="https://discord.com/users/1212168741824237608" target="_blank" class="btn">[ DISCORD ]</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="box">
+                            <span class="box-title">Stack_Trace</span>
+                            <ul class="tech-list">
+                                <li class="tech-item">HTML/CSS</li>
+                                <li class="tech-item">JS</li>
+                                <li class="tech-item">C#</li>
+                                <li class="tech-item">NODE.JS</li>
+                                <li class="tech-item">UI DESIGN</li>
+                            </ul>
+                        </div>
+
+                        <div class="box">
+                            <span class="box-title">Audio_System</span>
+                            <div class="player">
+                                <div class="album">
+                                    <i class="devicon-csharp-plain"></i>
+                                </div>
+
+                                <div class="track-meta">
+                                    <div class="track-label">Playing</div>
+                                    <div id="trackName">System_Audio.ogg</div>
+                                    <div id="trackArtist">Initializing...</div>
+
+                                    <div class="visualizer-wrap">
+                                        <div class="visualizer" id="visualizer"></div>
+                                    </div>
+
+                                    <div class="progress-row">
+                                        <div class="progress">
+                                            <div class="progress-fill" id="progressFill"></div>
+                                        </div>
+                                        <div class="progress-time" id="progressTime">0:00</div>
+                                    </div>
+                                </div>
+
+                                <div class="player-btns">
+                                    <button class="player-btn" id="prevBtn">PREV</button>
+                                    <button class="player-btn" id="playBtn">PLAY</button>
+                                    <button class="player-btn" id="nextBtn">NEXT</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="projects" class="tab">
+                <div class="box">
+                    <span class="box-title">Projects</span>
+                    <div class="repo-list" id="repoList">
+                        <div class="repo-card">
+                            <div class="repo-name">Loading repositories...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="about" class="tab">
+                <div class="grid">
+                    <div class="column">
+                        <div class="box">
+                            <span class="box-title">Identity</span>
+                            <div class="note">
+                                My online name is euYuzi. I am always studying new technologies, improving interfaces,
+                                exploring visual styles and turning ideas into real projects.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="column">
+                        <div class="box">
+                            <span class="box-title">Goals</span>
+                            <div class="note">
+                                I want to grow as a developer, create more professional pages, publish more projects and
+                                keep developing my visual identity.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <audio id="audioA" preload="auto" crossorigin="anonymous"></audio>
+    <audio id="audioB" preload="auto" crossorigin="anonymous"></audio>
+
+    <script>
+        const $ = (q) => document.querySelector(q);
+        const $$ = (q) => document.querySelectorAll(q);
+
+        const loader = $("#loader");
+        const loadBar = $("#load-bar");
+        const timeEl = $("#time");
+        const dateEl = $("#date");
+
+        const trackNameEl = $("#trackName");
+        const trackArtistEl = $("#trackArtist");
+        const progressFill = $("#progressFill");
+        const progressTime = $("#progressTime");
+        const visualizer = $("#visualizer");
+        const repoList = $("#repoList");
+        const profileAvatar = $("#profileAvatar");
+        const profileLogin = $("#profileLogin");
+        const profileBio = $("#profileBio");
+
+        const playBtn = $("#playBtn");
+        const prevBtn = $("#prevBtn");
+        const nextBtn = $("#nextBtn");
+
+        const root = document.documentElement;
+        const audioEls = [$("#audioA"), $("#audioB")];
+
+        const playlist = [
+            { name: "Spotify", artist: "Sazack", path: "musics/Vou-deixar-pra-trás_spotdown.org.ogg" },
+            { name: "Spotify", artist: "Lil Chainz", path: "musics/Lil-Chainz_-Alec__-Manel-Beats-Feiti_o-ou-praga_.ogg" },
+            { name: "Spotify", artist: "Lil Chainz", path: "musics/Lil-Chainz_-pibara_-sazack_-Duxter-Confesso-que-eu-tô-com-medo.ogg" },
+            { name: "Spotify", artist: "Lil Chainz", path: "musics/Lil-Chainz_-VMZ_-Pulim_-Prod.BRØNK_-Me-afoguei-na-boêmia.ogg" },
+            { name: "Spotify", artist: "VMZ", path: "musics/VMZ-Lofi-nordestino-_Dançar-Agarradinho_.ogg" }
+        ];
+
+        let currentIndex = 0;
+        let currentAudioIndex = 0;
+        let isPlaying = false;
+        let audioCtx = null;
+        let gainNodes = [];
+        let analysers = [];
+        let activeAnalyser = null;
+        let bars = [];
+        let lastFrame = 0;
+
+        function updateClock() {
+            const now = new Date();
+            timeEl.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
+            dateEl.textContent = now.toLocaleDateString('en-US', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }).replaceAll('.', '').toUpperCase();
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function setupVisualizerBars() {
+            visualizer.innerHTML = "";
+            const count = 24;
+            bars = Array.from({ length: count }, (_, i) => {
+                const bar = document.createElement("div");
+                const zone = i < 8 ? "low" : (i < 17 ? "mid" : "high");
+                bar.className = `bar ${zone}`;
+                bar.style.setProperty("--level", "1");
+                visualizer.appendChild(bar);
+                return bar;
+            });
+        }
+        setupVisualizerBars();
+
+        function ensureAudioContext() {
+            if (audioCtx) return;
+
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            audioEls.forEach((audio, idx) => {
+                const source = audioCtx.createMediaElementSource(audio);
+
+                // Sub presence: stronger around 32 Hz, but controlled so it stays soft and clean.
+                const subBass = audioCtx.createBiquadFilter();
+                subBass.type = "lowshelf";
+                subBass.frequency.value = 32;
+                subBass.gain.value = 5.0;
+
+                // Adds body without making the kick/bass boomy.
+                const bassBody = audioCtx.createBiquadFilter();
+                bassBody.type = "peaking";
+                bassBody.frequency.value = 78;
+                bassBody.Q.value = 0.85;
+                bassBody.gain.value = 2.2;
+
+                // Removes a little mud so vocals/instruments remain separated.
+                const mudCut = audioCtx.createBiquadFilter();
+                mudCut.type = "peaking";
+                mudCut.frequency.value = 235;
+                mudCut.Q.value = 0.9;
+                mudCut.gain.value = -2.6;
+
+                const presence = audioCtx.createBiquadFilter();
+                presence.type = "peaking";
+                presence.frequency.value = 2400;
+                presence.Q.value = 0.75;
+                presence.gain.value = 1.0;
+
+                const air = audioCtx.createBiquadFilter();
+                air.type = "highshelf";
+                air.frequency.value = 8500;
+                air.gain.value = 0.8;
+
+                // Gentle compressor/limiter to prevent boosted low frequencies from clipping.
+                const softLimiter = audioCtx.createDynamicsCompressor();
+                softLimiter.threshold.value = -10;
+                softLimiter.knee.value = 24;
+                softLimiter.ratio.value = 3.2;
+                softLimiter.attack.value = 0.006;
+                softLimiter.release.value = 0.20;
+
+                const analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 1024;
+                analyser.minDecibels = -90;
+                analyser.maxDecibels = -12;
+                analyser.smoothingTimeConstant = 0.72;
+
+                const gainNode = audioCtx.createGain();
+                gainNode.gain.value = idx === 0 ? 0.92 : 0;
+
+                source.connect(subBass);
+                subBass.connect(bassBody);
+                bassBody.connect(mudCut);
+                mudCut.connect(presence);
+                presence.connect(air);
+                air.connect(softLimiter);
+                softLimiter.connect(analyser);
+                analyser.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                gainNodes.push(gainNode);
+                analysers.push(analyser);
+            });
+
+            activeAnalyser = analysers[0];
+            animateVisualizer();
+        }
+
+        function animateVisualizer() {
+            requestAnimationFrame(animateVisualizer);
+            if (!activeAnalyser || !bars.length) return;
+
+            const data = new Uint8Array(activeAnalyser.frequencyBinCount);
+            activeAnalyser.getByteFrequencyData(data);
+
+            const nyquist = audioCtx.sampleRate / 2;
+            const hzToBin = (hz) => Math.max(0, Math.min(data.length - 1, Math.round((hz / nyquist) * data.length)));
+
+            // Radio-style bands: sub/bass on the left, musical mids in the center, detail/air on the right.
+            const ranges = [
+                [28,42],[36,55],[45,70],[58,90],[72,115],[92,145],[120,190],[155,250],
+                [210,330],[280,440],[360,560],[460,720],[580,920],[740,1180],[950,1500],[1200,1900],[1550,2500],
+                [2100,3300],[2700,4300],[3500,5600],[4500,7200],[5800,9200],[7600,12500],[9800,16000]
+            ];
+
+            let avgEnergy = 0;
+            let subEnergy = 0;
+
+            bars.forEach((bar, i) => {
+                const [loHz, hiHz] = ranges[i];
+                const a = hzToBin(loHz);
+                const b = Math.max(a + 1, hzToBin(hiHz));
+                let sum = 0, peak = 0, count = 0;
+                for (let j = a; j <= b; j++) {
+                    const v = data[j] || 0;
+                    sum += v;
+                    if (v > peak) peak = v;
+                    count++;
+                }
+                const mean = count ? sum / count : 0;
+                let energy = (mean * 0.72 + peak * 0.28) / 255;
+
+                // Keep the movement realistic and compact. Sub/bass gets presence, not huge jumps.
+                const sensitivity = i < 8 ? 1.08 : (i < 17 ? 1.0 : 1.14);
+                energy = Math.min(1, Math.pow(energy * sensitivity, 0.82));
+
+                // Quantize into 10 little pixel/dash segments like older head-unit displays.
+                const segments = isPlaying ? Math.max(1, Math.min(10, Math.round(energy * 10))) : 1;
+                bar.style.setProperty("--level", String(segments));
+                bar.style.opacity = isPlaying ? (0.58 + energy * 0.36).toFixed(2) : "0.30";
+
+                avgEnergy += energy;
+                if (i < 6) subEnergy += energy;
+            });
+
+            avgEnergy /= bars.length;
+            subEnergy /= 6;
+            root.style.setProperty("--beat-scale", (1 + subEnergy * 0.004).toFixed(3));
+            root.style.setProperty("--beat-glow", Math.min(.045, avgEnergy * .05).toFixed(3));
+            root.style.setProperty("--beat-opacity", "1");
+        }
+
+        function updateTrackInfo(index) {
+            const item = playlist[index];
+            trackNameEl.textContent = item?.name || "No track";
+            trackArtistEl.textContent = item?.artist || "Unknown artist";
+        }
+
+        function loadInto(audio, index) {
+            const item = playlist[index];
+            audio.src = item.path;
+            audio.dataset.trackIndex = index;
+            audio.load();
+        }
+
+        function formatTime(time) {
+            if (!isFinite(time)) return "0:00";
+            const m = Math.floor(time / 60);
+            const s = Math.floor(time % 60).toString().padStart(2, "0");
+            return `${m}:${s}`;
+        }
+
+        function syncProgress() {
+            const active = audioEls[currentAudioIndex];
+            if (!active.duration || !isFinite(active.duration)) {
+                progressFill.style.width = "0%";
+                progressTime.textContent = "0:00";
+                return;
+            }
+
+            const pct = (active.currentTime / active.duration) * 100;
+            progressFill.style.width = pct + "%";
+            progressTime.textContent = formatTime(active.currentTime);
+        }
+        setInterval(syncProgress, 180);
+
+        function setPlayLabel(playing) {
+            playBtn.textContent = playing ? "STOP" : "PLAY";
+        }
+
+        async function playCurrentInitial() {
+            ensureAudioContext();
+            if (audioCtx.state === "suspended") await audioCtx.resume();
+
+            const audio = audioEls[currentAudioIndex];
+            loadInto(audio, currentIndex);
+            updateTrackInfo(currentIndex);
+
+            try {
+                await audio.play();
+                isPlaying = true;
+                activeAnalyser = analysers[currentAudioIndex];
+                setPlayLabel(true);
+            } catch (e) {
+                isPlaying = false;
+                setPlayLabel(false);
+            }
+        }
+
+        async function togglePlay() {
+            ensureAudioContext();
+            if (audioCtx.state === "suspended") await audioCtx.resume();
+
+            const active = audioEls[currentAudioIndex];
+            if (!active.src) {
+                loadInto(active, currentIndex);
+                updateTrackInfo(currentIndex);
+            }
+
+            if (active.paused) {
+                try {
+                    await active.play();
+                    isPlaying = true;
+                    setPlayLabel(true);
+                } catch (e) {}
+            } else {
+                active.pause();
+                isPlaying = false;
+                setPlayLabel(false);
+            }
+        }
+
+        async function crossfadeTo(nextIndex) {
+            ensureAudioContext();
+            if (audioCtx.state === "suspended") await audioCtx.resume();
+
+            const fromIndex = currentAudioIndex;
+            const toIndex = fromIndex === 0 ? 1 : 0;
+
+            const currentAudio = audioEls[fromIndex];
+            const nextAudio = audioEls[toIndex];
+
+            currentIndex = (nextIndex + playlist.length) % playlist.length;
+            loadInto(nextAudio, currentIndex);
+            nextAudio.currentTime = 0;
+            gainNodes[toIndex].gain.value = 0;
+            activeAnalyser = analysers[toIndex];
+            updateTrackInfo(currentIndex);
+
+            try {
+                await nextAudio.play();
+            } catch (e) {
+                return;
+            }
+
+            isPlaying = true;
+            setPlayLabel(true);
+
+            const duration = 450;
+            const start = performance.now();
+            const fromGain = gainNodes[fromIndex].gain.value;
+            const toGain = gainNodes[toIndex].gain.value;
+
+            function step(now) {
+                const p = Math.min(1, (now - start) / duration);
+                gainNodes[fromIndex].gain.value = fromGain * (1 - p);
+                gainNodes[toIndex].gain.value = toGain + (0.92 - toGain) * p;
+
+                if (p < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    gainNodes[fromIndex].gain.value = 0;
+                    gainNodes[toIndex].gain.value = 0.92;
+                    currentAudioIndex = toIndex;
+                    activeAnalyser = analysers[toIndex];
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        playBtn.addEventListener("click", togglePlay);
+        prevBtn.addEventListener("click", () => crossfadeTo(currentIndex - 1));
+        nextBtn.addEventListener("click", () => crossfadeTo(currentIndex + 1));
+
+        audioEls.forEach((audio) => {
+            audio.addEventListener("ended", () => crossfadeTo(currentIndex + 1));
+            audio.addEventListener("play", () => { isPlaying = true; setPlayLabel(true); });
+            audio.addEventListener("pause", () => {
+                const active = audioEls[currentAudioIndex];
+                if (audio === active) {
+                    isPlaying = false;
+                    setPlayLabel(false);
+                }
+            });
+        });
+
+        async function loadGitHubProfile() {
+            try {
+                const res = await fetch("https://api.github.com/users/euYuzi", { headers: { "Accept": "application/vnd.github+json" } });
+                if (!res.ok) throw new Error("GitHub profile unavailable");
+                const user = await res.json();
+                if (user.avatar_url) profileAvatar.src = user.avatar_url;
+                profileLogin.textContent = `${user.login || "euYuzi"}@dev:~$`;
+                profileBio.textContent = user.bio || "Developer & Designer";
+            } catch (err) {
+                // Keep the local fallback already visible in the interface.
+            }
+        }
+
+        async function loadRepos() {
+            repoList.innerHTML = `<div class="repo-card"><div class="repo-name">Fetching projects...</div></div>`;
+            try {
+                const res = await fetch("https://api.github.com/users/euYuzi/repos?sort=updated&per_page=20");
+                if (!res.ok) throw new Error("GitHub API unavailable");
+                const repos = await res.json();
+
+                const sorted = repos
+                    .filter(repo => !repo.fork)
+                    .sort((a,b) => new Date(b.updated_at) - new Date(a.updated_at));
+
+                if (!sorted.length) {
+                    repoList.innerHTML = `<div class="repo-card"><div class="repo-name">No public projects found.</div></div>`;
+                    return;
+                }
+
+                repoList.innerHTML = "";
+                sorted.forEach(repo => {
+                    const card = document.createElement("a");
+                    card.className = "repo-card";
+                    card.href = repo.html_url;
+                    card.target = "_blank";
+                    card.rel = "noopener noreferrer";
+
+                    const language = repo.language || "Project";
+                    const status = repo.archived ? "archived" : "active";
+                    const desc = repo.description || "Project demonstractive sem descrição definida no GitHub.";
+
+                    card.innerHTML = `
+                        <div class="repo-head">
+                            <div class="repo-name">${repo.name}</div>
+                            <div class="repo-badge">${status}</div>
+                        </div>
+                        <div class="repo-desc">${desc}</div>
+                        <div class="repo-meta">
+                            <span class="chip">${language}</span>
+                            <span class="chip">★ ${repo.stargazers_count}</span>
+                            <span class="chip">${new Date(repo.updated_at).toLocaleDateString("en-US")}</span>
+                        </div>
+                    `;
+
+                    repoList.appendChild(card);
+                });
+            } catch (err) {
+                repoList.innerHTML = `<div class="repo-card"><div class="repo-name">Failed to load projects.</div></div>`;
+            }
+        }
+
+        $$(".tab-link").forEach(link => {
+            link.addEventListener("click", (e) => {
+                e.preventDefault();
+                const tabId = link.dataset.tab;
+
+                $$(".tab-link").forEach(l => l.classList.remove("active"));
+                $$(".tab").forEach(tab => tab.classList.remove("active"));
+
+                link.classList.add("active");
+                document.getElementById(tabId).classList.add("active");
+            });
+        });
+
+        window.addEventListener("load", async () => {
+            let progress = 0;
+            await new Promise(resolve => {
+                const interval = setInterval(() => {
+                    progress += 5 + Math.random() * 8;
+                    if (progress > 100) progress = 100;
+                    loadBar.style.width = progress + "%";
+
+                    if (progress === 100) {
+                        clearInterval(interval);
+                        setTimeout(resolve, 420);
+                    }
+                }, 55);
+            });
+
+            loader.classList.add("hide");
+            setTimeout(() => { loader.style.display = "none"; }, 600);
+            updateTrackInfo(currentIndex);
+            loadGitHubProfile();
+            loadRepos();
+            setTimeout(() => playCurrentInitial(), 350);
+        });
+
+        document.body.addEventListener("click", async () => {
+            if (audioCtx && audioCtx.state === "suspended") {
+                await audioCtx.resume();
+            }
+        }, { once: false });
+    </script>
+</body>
+</html>
